@@ -1,0 +1,17 @@
+using System;
+using UnityEngine;
+
+namespace Game
+{
+    [Serializable]
+    public class ElementPosition
+    {
+        public readonly Vector2 LocalPosition;
+        public readonly Vector2 GridPostion;
+        public ElementPosition(Vector2 localPosition, Vector2 gridPosition)
+        {
+            LocalPosition = localPosition;
+            GridPostion = gridPosition;
+        }
+    }
+}
