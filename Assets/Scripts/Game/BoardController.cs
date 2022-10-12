@@ -45,11 +45,18 @@ namespace Game
         private void SubscribeSignals()
         {
             _signalBus.Subscribe<OnElementClickSignal>(OnElementClick);
+            _signalBus.Subscribe<RestartSignal>(OnRestart);
         }
 
         private void UnsubscribeSignals()
         {
             _signalBus.Unsubscribe<OnElementClickSignal>(OnElementClick);
+            _signalBus.Unsubscribe<RestartSignal>(OnRestart);
+        }
+
+        private void OnRestart()
+        {
+            Debug.Log("Restart");
         }
 
         private void OnElementClick(OnElementClickSignal signal)
@@ -105,6 +112,7 @@ namespace Game
                 if (elementsForCollecting.Count > 0)
                 {
                     await DisableElements(elementsForCollecting);
+                    _signalBus.Fire(new OnBoardMatchSignal(elementsForCollecting.Count));
                     await NormalizeBoard();
                     isNeedRecheck = true;
                 }
