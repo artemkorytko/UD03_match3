@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Cysharp.Threading.Tasks;
 using Signals;
 using UnityEngine;
 using Zenject;
@@ -88,7 +89,7 @@ namespace Game
             }
         }
 
-        private void CheckBoard()
+        private async void CheckBoard()
         {
             _isBlocked = true;
 
@@ -103,8 +104,8 @@ namespace Game
 
                 if (elementsForCollecting.Count > 0)
                 {
-                    DisableElements(elementsForCollecting);
-                    NormalizeBoard();
+                    await DisableElements(elementsForCollecting);
+                    await NormalizeBoard();
                     isNeedRecheck = true;
                 }
             } while (isNeedRecheck);
@@ -212,15 +213,18 @@ namespace Game
             return elementsInLine;
         }
 
-        private void DisableElements(List<Element> elementsForCollecting)
+        private async UniTask DisableElements(List<Element> elementsForCollecting)
         {
+            var tasks = new List<UniTask>();
             foreach (var element in elementsForCollecting)
             {
-                element.Disable();
+                tasks.Add(element.Disable());
             }
+
+            await UniTask.WhenAll(tasks);
         }
 
-        private void NormalizeBoard()
+        private async UniTask NormalizeBoard()
         {
             var column = _boardConfig.SizeX;
             var row = _boardConfig.SizeY;
@@ -244,6 +248,7 @@ namespace Game
                 }
             }
 
+            var tasks = new List<UniTask>();
             for (int y = row - 1; y >= 0; y--)
             {
                 for (int x = column - 1; x >= 0; x--)
@@ -251,10 +256,12 @@ namespace Game
                     if (!_elements[x, y].IsActive)
                     {
                         GenerateRandomElement(_elements[x, y], column, row);
-                        _elements[x, y].Enable();
+                        tasks.Add(_elements[x, y].Enable());
                     }
                 }
             }
+
+            await UniTask.WhenAll(tasks);
         }
 
         private void GenerateRandomElement(Element element, int column, int row)
