@@ -14,6 +14,5 @@ public class ProjectSetup: IInitializable
     {
         Application.targetFrameRate = _projectSettings.TargetFPS;
         Input.multiTouchEnabled = _projectSettings.IsMultiTouch;
-        Debug.Log("Project setup");
     }
 }
