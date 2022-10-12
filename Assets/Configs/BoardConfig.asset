@@ -12,3 +12,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: df5cb293893c4a03b75ffde36ff51f22, type: 3}
   m_Name: BoardConfig
   m_EditorClassIdentifier: 
+  sizeX: 5
+  sizeY: 7
+  elementOffset: 1

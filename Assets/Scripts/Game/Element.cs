@@ -1,4 +1,5 @@
 using System;
+using Signals;
 using UnityEngine;
 using Zenject;
 
@@ -18,6 +19,7 @@ namespace Game
         private Vector2 _gridPosition;
 
         private ElementConfigItem _configItem;
+        private SignalBus _signalBus;
 
         public Vector2 GridPosition => _gridPosition;
         public ElementConfigItem ConfigItem => _configItem;
@@ -25,11 +27,13 @@ namespace Game
         public bool IsInitialized { get; private set; }
 
         [Inject]
-        public void Construct(ElementConfigItem configItem, ElementPosition elementPosition)
+        public void Construct(ElementConfigItem configItem, ElementPosition elementPosition,
+            SignalBus signalBus)
         {
             _configItem = configItem;
             _localPosition = elementPosition.LocalPosition;
             _gridPosition = elementPosition.GridPosition;
+            _signalBus = signalBus;
         }
 
         public void Initialize()
@@ -39,6 +43,12 @@ namespace Game
             Enable();
         }
 
+        public void SetConfig(ElementConfigItem configItem)
+        {
+            _configItem = configItem;
+            iconSpriteRenderer.sprite = _configItem.Sprite;
+        }
+        
         public void SetConfig()
         {
             iconSpriteRenderer.sprite = _configItem.Sprite;
@@ -47,6 +57,12 @@ namespace Game
         public void SetLocalPosition()
         {
             transform.localPosition = _localPosition;
+        }
+        
+        public void SetLocalPosition(Vector2 localPosition, Vector2 gridPosition)
+        {
+            transform.localPosition = localPosition;
+            _gridPosition = gridPosition;
         }
 
         public void Enable()
@@ -75,6 +91,7 @@ namespace Game
 
         private void OnClick()
         {
+            _signalBus.Fire(new OnElementClickSignal(this));
         }
     }
 }
