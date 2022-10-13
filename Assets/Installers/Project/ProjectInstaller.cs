@@ -6,6 +6,7 @@ namespace Installers.Project
     {
         public override void InstallBindings()
         {
+            SignalBusInstaller.Install(Container);
             Container.BindInterfacesAndSelfTo<ProjectSetup>().AsSingle().NonLazy();
         }
     }

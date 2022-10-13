@@ -3,7 +3,6 @@ using UnityEngine;
 
 namespace Game
 {
-    [Serializable]
     public class ElementPosition
     {
         public readonly Vector2 LocalPosition;
