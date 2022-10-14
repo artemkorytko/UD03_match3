@@ -14,28 +14,37 @@ namespace Game
         private readonly ElementsConfig _elementsConfig;
         private readonly Element.Factory _factory;
         private readonly SignalBus _signalBus;
+        private readonly SaveSystem _saveSystem;
 
         private Element[,] _elements;
         private Element _firstSelected;
         private bool _isBlocked;
         
-        public BoardController(BoardConfig boardConfig,ElementsConfig elementsConfig, Element.Factory factory, SignalBus signalBus)
+        public BoardController(BoardConfig boardConfig,ElementsConfig elementsConfig, Element.Factory factory, SignalBus signalBus,SaveSystem saveSystem)
         {
             _boardConfig = boardConfig;
             _elementsConfig = elementsConfig;
             _factory = factory;
             _signalBus = signalBus;
+            _saveSystem = saveSystem;
         }
         
         public void Initialize()
         {
             GenerateElements();
+            
+            if (_saveSystem.LoadSuccessful)
+            {
+                LoadBoard();
+            }
+
             SubscribeSignals();
         }
         
         public void Dispose()
         {
            UnsubscribeSignals();
+           SaveBoard();
         }
 
         private void SubscribeSignals()
@@ -46,6 +55,42 @@ namespace Game
         private void UnsubscribeSignals()
         {
             _signalBus.Unsubscribe<OnElementClickSignal>(OnElementClick);
+        }
+
+        private void SaveBoard()
+        {
+            var column = _boardConfig.SizeX;
+            var row = _boardConfig.SizeY;
+
+            int index = 0;
+            
+            for (int y = 0; y < row; y++)
+            {
+                for (int x = 0; x < column; x++)
+                {
+                    _saveSystem.Data.UpdateElement(index, _elements[x, y]);
+                    index++;
+                }
+            }
+
+            _saveSystem.SaveData();
+        }
+
+        private void LoadBoard()
+        {
+            var column = _boardConfig.SizeX;
+            var row = _boardConfig.SizeY;
+            
+            int index = 0;
+            
+            for (int y = 0; y < row; y++)
+            {
+                for (int x = 0; x < column; x++)
+                {
+                    _elements[x, y].SetConfig(_elementsConfig.GetByKey(_saveSystem.Data.ElementsKey[index]));
+                    index++;
+                }
+            }
         }
         
         private void OnElementClick(OnElementClickSignal signal)

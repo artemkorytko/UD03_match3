@@ -10,7 +10,8 @@ namespace Game
     {
         private const int SCORE_FOR_ELEMENTS = 10;
         private readonly SignalBus _signalBus;
-        
+        private readonly SaveSystem _saveSystem;
+
         private int _score;
 
         private int Score
@@ -24,14 +25,16 @@ namespace Game
             }
         }
 
-        public GameManager(SignalBus signalBus)
+        public GameManager(SignalBus signalBus, SaveSystem saveSystem)
         {
             _signalBus = signalBus;
+            _saveSystem = saveSystem;
         }
         
         public void Initialize()
         {
             SubscribeSignals();
+            _score = _saveSystem.Data.Score;
         }
         
         public void Dispose()
@@ -52,6 +55,7 @@ namespace Game
         private void OnBoardMatch(OnBoardMatchSignal signal)
         {
             Score = SCORE_FOR_ELEMENTS * signal.Value;
+            _saveSystem.Data.UpdateScore(Score);
         }
     }
 }

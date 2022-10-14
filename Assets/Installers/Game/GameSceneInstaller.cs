@@ -8,6 +8,7 @@ public class GameSceneInstaller : MonoInstaller
     [SerializeField] private Element elementPrefab;
     public override void InstallBindings()
     {
+        Container.BindInterfacesAndSelfTo<SaveSystem>().AsSingle().NonLazy();
         Container.BindInterfacesAndSelfTo<BoardController>().AsSingle().NonLazy();
         Container.BindFactory<ElementConfigItem, ElementPosition, Element, Element.Factory>()
             .FromComponentInNewPrefab(elementPrefab);
