@@ -50,11 +50,13 @@ namespace Game
         private void SubscribeSignals()
         {
             _signalBus.Subscribe<OnElementClickSignal>(OnElementClick);
+            _signalBus.Subscribe<RestartSignal>(OnRestartClick);
         }
         
         private void UnsubscribeSignals()
         {
             _signalBus.Unsubscribe<OnElementClickSignal>(OnElementClick);
+            _signalBus.Unsubscribe<RestartSignal>(OnRestartClick);
         }
 
         private void SaveBoard()
@@ -91,6 +93,36 @@ namespace Game
                     index++;
                 }
             }
+        }
+
+        private async void OnRestartClick()
+        {
+            var column = _boardConfig.SizeX;
+            var row = _boardConfig.SizeY;
+            
+            var elements = new List<Element>();
+            
+            for (int y = 0; y < row; y++)
+            {
+                for (int x = 0; x < column; x++)
+                {
+                    elements.Add(_elements[x, y]);
+                }
+            }
+
+            await DisableElements(elements);
+            
+            var tasks = new List<UniTask>();
+            
+            for (int y = 0; y < row; y++)
+            {
+                for (int x = 0; x < column; x++)
+                {
+                    GenerateRandomElement(_elements[x, y], column, row);
+                    tasks.Add(_elements[x,y].Enable());
+                }
+            }
+            await UniTask.WhenAll(tasks);
         }
         
         private void OnElementClick(OnElementClickSignal signal)

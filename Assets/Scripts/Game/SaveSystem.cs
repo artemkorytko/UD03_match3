@@ -1,7 +1,8 @@
 using System;
 using Game;
-using Zenject;
+using Unity.VisualScripting;
 using UnityEngine;
+using IInitializable = Zenject.IInitializable;
 
 public class SaveSystem : IInitializable
 {

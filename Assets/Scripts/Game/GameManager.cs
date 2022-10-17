@@ -11,6 +11,7 @@ namespace Game
         private const int SCORE_FOR_ELEMENTS = 10;
         private readonly SignalBus _signalBus;
         private readonly SaveSystem _saveSystem;
+        private readonly UIManager _uiManager;
 
         private int _score;
 
@@ -21,20 +22,22 @@ namespace Game
             {
                 if (value == _score) return;
                 _score += value;
-                Debug.Log(_score);
+                _uiManager.AddScore(value);
             }
         }
 
-        public GameManager(SignalBus signalBus, SaveSystem saveSystem)
+        public GameManager(SignalBus signalBus, SaveSystem saveSystem,UIManager uiManager)
         {
             _signalBus = signalBus;
             _saveSystem = saveSystem;
+            _uiManager = uiManager;
         }
         
         public void Initialize()
         {
             SubscribeSignals();
             _score = _saveSystem.Data.Score;
+            _uiManager.Initialize(_score);
         }
         
         public void Dispose()

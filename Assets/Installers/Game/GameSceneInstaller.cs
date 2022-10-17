@@ -10,6 +10,8 @@ public class GameSceneInstaller : MonoInstaller
     {
         Container.BindInterfacesAndSelfTo<SaveSystem>().AsSingle().NonLazy();
         Container.BindInterfacesAndSelfTo<BoardController>().AsSingle().NonLazy();
+        Container.BindInterfacesAndSelfTo<UIManager>().AsSingle().NonLazy();
+        Container.Bind<ScoreCounter>().FromComponentInHierarchy().AsSingle();
         Container.BindFactory<ElementConfigItem, ElementPosition, Element, Element.Factory>()
             .FromComponentInNewPrefab(elementPrefab);
         Container.BindInterfacesAndSelfTo<GameManager>().AsSingle().NonLazy();

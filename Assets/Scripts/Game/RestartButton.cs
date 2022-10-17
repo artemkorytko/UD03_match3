@@ -11,7 +11,7 @@ namespace Game
         private SignalBus _signalBus;
         
         [Inject]
-        public void Construct( SignalBus signalBus)
+        public void Construct(SignalBus signalBus)
         {
             _signalBus = signalBus;
         }
