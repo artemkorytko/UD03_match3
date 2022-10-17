@@ -14,6 +14,7 @@ namespace Game
         private readonly ElementsConfig _elementsConfig;
         private readonly Element.Factory _factory;
         private readonly SignalBus _signalBus;
+        private readonly SaveSystem _saveSystem;
 
         private Element[,] _elements;
         private DiContainer _container;
@@ -22,41 +23,105 @@ namespace Game
 
         private bool _isBlocked;
 
-        public BoardController(BoardConfig boardConfig, ElementsConfig elementsConfig, Element.Factory factory, SignalBus signalBus)
+        public BoardController(BoardConfig boardConfig, ElementsConfig elementsConfig, Element.Factory factory, SignalBus signalBus, SaveSystem saveSystem)
         {
             _boardConfig = boardConfig;
             _elementsConfig = elementsConfig;
             _factory = factory;
             _signalBus = signalBus;
+            _saveSystem = saveSystem;
         }
 
         public void Initialize()
         {
-            GenerateElements();
-
             SubscribeSignals();
         }
 
         public void Dispose()
         {
             UnsubscribeSignals();
+          //  _saveSystem.Data.BoardState = GetBoardState();
+           // _saveSystem.SaveData();
+        }
+
+        private string[] GetBoardState()
+        {
+            var column = _boardConfig.SizeX;
+            var row = _boardConfig.SizeY;
+            var list = new List<string>();
+            for (int y = 0; y < row; y++)
+            {
+                for (int x = 0; x < column; x++)
+                {
+                    list.Add(_elements[x, y].ConfigItem.Key);
+                }
+            }
+
+            return list.ToArray();
         }
 
         private void SubscribeSignals()
         {
             _signalBus.Subscribe<OnElementClickSignal>(OnElementClick);
             _signalBus.Subscribe<RestartSignal>(OnRestart);
+            _signalBus.Subscribe<CreateGameSignal>(OnCreateGame);
         }
 
         private void UnsubscribeSignals()
         {
             _signalBus.Unsubscribe<OnElementClickSignal>(OnElementClick);
             _signalBus.Unsubscribe<RestartSignal>(OnRestart);
+            _signalBus.Unsubscribe<CreateGameSignal>(OnCreateGame);
         }
 
-        private void OnRestart()
+        private void OnCreateGame()
         {
-            Debug.Log("Restart");
+            if (_saveSystem.Data.BoardState == null)
+            {
+                GenerateElements();
+            }
+            else
+            {
+                GenerateElementsWithData(_saveSystem.Data.BoardState);
+            }
+        }
+
+        private void GenerateElementsWithData(string[] dataBoardState)
+        {
+            var column = _boardConfig.SizeX;
+            var row = _boardConfig.SizeY;
+            var elementsOffset = _boardConfig.ElementOffset;
+            _elements = new Element[column, row];
+            var counter = 0;
+            var startPosition = new Vector2(-elementsOffset * column * 0.5f + elementsOffset * 0.5f, elementsOffset * row * 0.5f - elementsOffset * 0.5f);
+            for (int y = 0; y < row; y++)
+            {
+                for (int x = 0; x < column; x++)
+                {
+                    var position = startPosition + new Vector2(elementsOffset * x, -elementsOffset * y);
+                    var element = _factory.Create(_elementsConfig.GetByKey(dataBoardState[counter++]),
+                        new ElementPosition(position, new Vector2(x, y)));
+                    element.Initialize();
+                    _elements[x, y] = element;
+                }
+            }
+        }
+
+        private async void OnRestart()
+        {
+            var column = _boardConfig.SizeX;
+            var row = _boardConfig.SizeY;
+            for (int y = 0; y < row; y++)
+            {
+                for (int x = 0; x < column; x++)
+                {
+                    _elements[x, y].DestroySelf();
+                }
+            }
+
+            _elements = null;
+            await UniTask.Yield();
+            GenerateElements();
         }
 
         private void OnElementClick(OnElementClickSignal signal)
