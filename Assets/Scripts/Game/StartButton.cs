@@ -5,7 +5,7 @@ using Zenject;
 
 namespace Game
 {
-    public class RestartButton : MonoBehaviour
+    public class StartButton : MonoBehaviour
     {
         private SignalBus _signalBus;
         [Inject]
@@ -33,7 +33,7 @@ namespace Game
 
         private void OnClick()
         {
-            _signalBus.Fire<OnRestartSignal>();
+            _signalBus.Fire<OnStartSignal>();
         }
     }
 }

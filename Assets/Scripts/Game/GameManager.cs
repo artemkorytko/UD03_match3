@@ -41,18 +41,18 @@ namespace Game
         private void SubscribeSignals()
         {
             _signalBus.Subscribe<OnBoardMatchSignal>(OnBoardMatch);
-            _signalBus.Subscribe<OnRestartSignal>(OnRestart);
+            _signalBus.Subscribe<OnStartSignal>(OnStart);
         }
         
         private void UnsubscribeSignals()
         {
             _signalBus.Unsubscribe<OnBoardMatchSignal>(OnBoardMatch);
-            _signalBus.Unsubscribe<OnRestartSignal>(OnRestart);
+            _signalBus.Unsubscribe<OnStartSignal>(OnStart);
         }
 
-        private void OnRestart()
+        private void OnStart()
         {
-            Debug.Log("Restart");
+            UiController.FindObjectOfType<UiController>().ShowGamePanel();
         }
 
         private void OnBoardMatch(OnBoardMatchSignal signal)

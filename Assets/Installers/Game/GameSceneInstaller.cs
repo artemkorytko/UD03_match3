@@ -20,5 +20,7 @@ public class GameSceneInstaller : MonoInstaller
         Container.DeclareSignal<OnBoardMatchSignal>();
         Container.DeclareSignal<OnScoreChangedSignal>();
         Container.DeclareSignal<OnRestartSignal>();
+        Container.DeclareSignal<OnStartSignal>();
+        Container.DeclareSignal<OnMenuSignal>();
     }
 }

@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using Cysharp.Threading.Tasks;
 using Signals;
@@ -43,11 +44,33 @@ namespace Game
         private void SubscribeSignals()
         {
             _signalBus.Subscribe<OnElementClickSignal>(OnElementClick);
+            _signalBus.Subscribe<OnRestartSignal>(OnRestart);
+            _signalBus.Subscribe<OnMenuSignal>(OnMenu);
         }
-        
+
+
         private void UnsubscribeSignals()
         {
             _signalBus.Unsubscribe<OnElementClickSignal>(OnElementClick);
+            _signalBus.Unsubscribe<OnRestartSignal>(OnRestart);
+            _signalBus.Unsubscribe<OnMenuSignal>(OnMenu);
+        }
+
+        private void OnMenu()
+        {
+            UiController.FindObjectOfType<UiController>().ShowMenuPanel();
+        }
+
+        private async void OnRestart()
+        {
+            var tasks = new List<UniTask>();
+            foreach (var Element in _elements)
+            {
+                tasks.Add(Element.DestroyElement());
+            }
+            await UniTask.WhenAll(tasks);
+            
+            GenerateElements();
         }
 
         private void OnElementClick(OnElementClickSignal signal)
@@ -311,7 +334,7 @@ namespace Game
             first.SetLocalPosition(position,gridPosition);
         }
 
-        private void GenerateElements()
+        private void  GenerateElements()
         {
             var column = _boardConfig.SizeX;
             var row = _boardConfig.SizeY;

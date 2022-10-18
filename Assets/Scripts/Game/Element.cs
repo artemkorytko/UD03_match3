@@ -75,6 +75,12 @@ namespace Game
             gameObject.SetActive(false);
         }
 
+        public async UniTask DestroyElement()
+        {
+            await transform.DOScale(Vector3.zero, ANIMATION_TIME);
+            Destroy(gameObject);
+        }
+
         public void SetLocalPosition()
         {
             transform.localPosition = _localPosition;
