@@ -15,6 +15,7 @@ namespace Game
         private readonly ElementsConfig _elementsConfig;
         private readonly Element.Factory _factory;
         private readonly SignalBus _signalBus;
+        private readonly SaveSystem _saveSystem;
 
         private Element[,] _elements;
         private DiContainer _container;
@@ -23,29 +24,47 @@ namespace Game
 
         private bool _isBlocked;
 
-        public BoardController(BoardConfig boardConfig, ElementsConfig elementsConfig,Element.Factory factory,SignalBus signalBus)
+        public BoardController(BoardConfig boardConfig, ElementsConfig elementsConfig,Element.Factory factory,SignalBus signalBus,SaveSystem saveSystem)
         {
             _boardConfig = boardConfig;
             _elementsConfig = elementsConfig;
             _factory = factory;
             _signalBus = signalBus;
+            _saveSystem = saveSystem;
         } 
         public void Initialize()
         {
-            GenerateElements();
-            
             SubscribeSignals();
         }
         public void Dispose()
         {
             UnsubscribeSignals();
+            //_saveSystem.Data.BoardState = GetBoardState();
+            //_saveSystem.SaveData(); 
+        }
+
+        private string[] GetBoardState()
+        {
+            var column = _boardConfig.SizeX;
+            var row = _boardConfig.SizeY;
+            var list = new List<string>();
+            for (int y = 0; y < row; y++)
+            {
+                for (int x = 0; x < column; x++)
+                {
+                   list.Add(_elements[x,y].ConfigItem.Key);
+                }
+            }
+
+            return list.ToArray();
         }
 
         private void SubscribeSignals()
         {
             _signalBus.Subscribe<OnElementClickSignal>(OnElementClick);
             _signalBus.Subscribe<OnRestartSignal>(OnRestart);
-            _signalBus.Subscribe<OnMenuSignal>(OnMenu);
+            //_signalBus.Subscribe<OnMenuSignal>(OnMenu);
+            _signalBus.Subscribe<CreateGameSignal>(OnCreateGame);
         }
 
 
@@ -53,24 +72,75 @@ namespace Game
         {
             _signalBus.Unsubscribe<OnElementClickSignal>(OnElementClick);
             _signalBus.Unsubscribe<OnRestartSignal>(OnRestart);
-            _signalBus.Unsubscribe<OnMenuSignal>(OnMenu);
+            //_signalBus.Unsubscribe<OnMenuSignal>(OnMenu);
+            _signalBus.Unsubscribe<CreateGameSignal>(OnCreateGame);
         }
 
-        private void OnMenu()
+        private void OnCreateGame()
         {
-            UiController.FindObjectOfType<UiController>().ShowMenuPanel();
+            if (_saveSystem.Data.BoardState==null)
+            {
+                GenerateElements();
+            }
+            else
+            {
+                GenerateElementsWithData(_saveSystem.Data.BoardState);
+            }
         }
+
+        private void GenerateElementsWithData(string[] dataBoardState)
+        {
+            var column = _boardConfig.SizeX;
+            var row = _boardConfig.SizeY;
+            var elementsoffset = _boardConfig.ElementOffset;
+            _elements = new Element[column,row];
+
+            var counter = 0;
+
+            var startPosition = new Vector2(-elementsoffset * column * 0.5f + elementsoffset * 0.5f,
+                elementsoffset * row * 0.5f - elementsoffset * 0.5f);
+            for (int y = 0; y < row; y++)
+            {
+                for (int x = 0; x < column; x++)
+                {
+                    var position = startPosition + new Vector2(elementsoffset * x, -elementsoffset * y);
+                    var element = _factory.Create(_elementsConfig.GetByKey(dataBoardState[counter++]),
+                        new ElementPosition(position,new Vector2(x,y)));
+                    element.Initialize();
+                    _elements[x, y] = element;
+                }
+            }
+        }
+
+        // private void OnMenu()
+        // {
+        //     UiController.FindObjectOfType<UiController>().ShowMenuPanel();
+        // }
 
         private async void OnRestart()
         {
-            var tasks = new List<UniTask>();
-            foreach (var Element in _elements)
+            var column = _boardConfig.SizeX;
+            var row = _boardConfig.SizeY;
+            for (int y = 0; y < row; y++)
             {
-                tasks.Add(Element.DestroyElement());
+                for (int x = 0; x < column; x++)
+                {
+                    _elements[x, y].DestroySelf();
+                }
             }
-            await UniTask.WhenAll(tasks);
-            
+
+            _elements = null;
+            await UniTask.Yield();
             GenerateElements();
+            
+            // var tasks = new List<UniTask>();
+            // foreach (var Element in _elements)
+            // {
+            //     tasks.Add(Element.DestroyElement());
+            // }
+            // await UniTask.WhenAll(tasks);
+            //
+            // GenerateElements();
         }
 
         private void OnElementClick(OnElementClickSignal signal)

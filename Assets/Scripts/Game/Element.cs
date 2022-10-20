@@ -106,5 +106,10 @@ namespace Game
         {
             _signalBus.Fire(new OnElementClickSignal(this));
         }
+
+        public void DestroySelf()
+        {
+            Destroy(gameObject);
+        }
     }
 }
