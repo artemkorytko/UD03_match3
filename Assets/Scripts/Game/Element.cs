@@ -15,7 +15,7 @@ namespace Game
         }
 
         private const float ANIMATION_TIME = 0.5f;
-        
+
         [SerializeField] private SpriteRenderer bgSpriteRender;
         [SerializeField] private SpriteRenderer iconSpriteRender;
 
@@ -24,7 +24,11 @@ namespace Game
 
         private ElementConfigItem _configItem;
         private SignalBus _signalBus;
+        
+        private Animation _animation;
+        
 
+        public string Key => _configItem.Key;
         public Vector2 GridPosition => _gridPosition;
         public ElementConfigItem ConfigItem => _configItem;
         public bool IsActive { get; private set; }
@@ -44,9 +48,20 @@ namespace Game
         public void Initialize()
         {
             _startScale = transform.localScale;
+            _animation = GetComponent<Animation>();
             SetConfig();
             SetLocalPosition();
             Enable().Forget();
+        }
+
+        private void Start()
+        {
+            _signalBus.Subscribe<OnDoStep>(StopShowSelf);
+        }
+
+        private void OnDestroy()
+        {
+            _signalBus.Unsubscribe<OnDoStep>(StopShowSelf);
         }
 
         public void SetConfig(ElementConfigItem config)
@@ -101,6 +116,23 @@ namespace Game
         private void OnClick()
         {
             _signalBus.Fire(new OnElementClickSignal(this));
+        }
+
+        public void DestroySelf()
+        {
+            Destroy(gameObject);
+        }
+
+        public void ElementShowSelf()
+        {
+            _animation.Play();
+        }
+
+        public void StopShowSelf()
+        {
+            _animation.Stop();
+            transform.localRotation = Quaternion.Euler(0, 0, 0);
+            transform.localScale = new Vector3(1, 1, 1);
         }
     }
 }

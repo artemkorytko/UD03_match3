@@ -14,6 +14,7 @@ namespace Installers.Game
             Container.BindFactory<ElementConfigItem, ElementPosition, Element, Element.Factory>()
                 .FromComponentInNewPrefab(elementPrefab);
             Container.BindInterfacesAndSelfTo<GameManager>().AsSingle().NonLazy();
+            Container.Bind<SaveDataSystem>().AsSingle().NonLazy();
             BindSignals();
         }
 
@@ -23,6 +24,9 @@ namespace Installers.Game
             Container.DeclareSignal<OnBoardMatch>();
             Container.DeclareSignal<RestartSignal>();
             Container.DeclareSignal<OnScoreChangedSignal>();
+            Container.DeclareSignal<OnElementForMatchShow>();
+            Container.DeclareSignal<OnDoStep>();
+            Container.DeclareSignal<OnBackStepSignal>();
         }
     }
 }

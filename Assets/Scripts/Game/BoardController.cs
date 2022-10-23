@@ -8,7 +8,7 @@ using Random = UnityEngine.Random;
 
 namespace Game
 {
-    public class BoardController : IInitializable, IDisposable
+    public class BoardController : IDisposable
     {
         private readonly BoardConfig _boardConfig;
         private readonly ElementsConfig _elementsConfig;
@@ -17,12 +17,14 @@ namespace Game
 
         private Element[,] _elements;
         private DiContainer _container;
+        private string[] _elementKeys;
 
         private Element _firstSelected;
 
         private bool _isBlocked;
 
-        public BoardController(BoardConfig boardConfig, ElementsConfig elementsConfig, Element.Factory factory, SignalBus signalBus)
+        public BoardController(BoardConfig boardConfig, ElementsConfig elementsConfig, Element.Factory factory,
+            SignalBus signalBus)
         {
             _boardConfig = boardConfig;
             _elementsConfig = elementsConfig;
@@ -33,8 +35,33 @@ namespace Game
         public void Initialize()
         {
             GenerateElements();
-
             SubscribeSignals();
+            _elementKeys = new string[_boardConfig.SizeX * _boardConfig.SizeY];
+        }
+
+        public void Initialize(string[] elementKeys)
+        {
+            GenerateElements(elementKeys);
+            SubscribeSignals();
+        }
+
+        public string[] SaveElementKeys()
+        {
+            string[] elementKeys = new string[_boardConfig.SizeX * _boardConfig.SizeY];
+            var column = _boardConfig.SizeX;
+            var row = _boardConfig.SizeY;
+            int arrayIndex = 0;
+
+            for (int y = 0; y < row; y++)
+            {
+                for (int x = 0; x < column; x++)
+                {
+                    elementKeys[arrayIndex] = _elements[x, y].Key;
+                    arrayIndex++;
+                }
+            }
+
+            return elementKeys;
         }
 
         public void Dispose()
@@ -45,29 +72,34 @@ namespace Game
         private void SubscribeSignals()
         {
             _signalBus.Subscribe<OnElementClickSignal>(OnElementClick);
-            _signalBus.Subscribe<RestartSignal>(async x => await OnRestart());
+            _signalBus.Subscribe<RestartSignal>(OnRestart);
+            _signalBus.Subscribe<OnBackStepSignal>(OnBackStep);
+            _signalBus.Subscribe<OnElementForMatchShow>(ShowElementsForMatch);
         }
 
         private void UnsubscribeSignals()
         {
             _signalBus.Unsubscribe<OnElementClickSignal>(OnElementClick);
-            _signalBus.TryUnsubscribe<RestartSignal>(async x => await OnRestart());
+            _signalBus.Unsubscribe<RestartSignal>(OnRestart);
+            _signalBus.Unsubscribe<OnBackStepSignal>(OnBackStep);
+            _signalBus.Unsubscribe<OnElementForMatchShow>(ShowElementsForMatch);
         }
 
-        private async UniTask OnRestart()
+        private async void OnRestart()
         {
             var column = _boardConfig.SizeX;
             var row = _boardConfig.SizeY;
             var tasks = new List<UniTask>();
-            
+
             foreach (var element in _elements)
             {
                 tasks.Add(element.Disable());
             }
+
             await UniTask.WhenAll(tasks);
 
             tasks.Clear();
-            
+
             for (int y = row - 1; y >= 0; y--)
             {
                 for (int x = column - 1; x >= 0; x--)
@@ -78,6 +110,34 @@ namespace Game
             }
 
             await UniTask.WhenAll(tasks);
+        }
+
+        private void ShowElementsForMatch()
+        {
+            var element = SearchElementForMatch();
+
+            if (element!=null)
+            {
+                element.ElementShowSelf();
+            }
+        }
+
+        private async void OnBackStep()
+        {
+            var column = _boardConfig.SizeX;
+            var row = _boardConfig.SizeY;
+            for (int y = 0; y < row; y++)
+            {
+                for (int x = 0; x < column; x++)
+                {
+                    _elements[x, y].DestroySelf();
+                }
+            }
+
+            _elements = null;
+            await UniTask.Yield();
+            
+            GenerateElements(_elementKeys);
         }
 
         private void OnElementClick(OnElementClickSignal signal)
@@ -95,10 +155,14 @@ namespace Game
             {
                 if (IsCanSwap(_firstSelected, element))
                 {
+                    _elementKeys = null;
+                    _elementKeys = SaveElementKeys();
                     _firstSelected.SetSelected(false);
+                    _firstSelected.StopShowSelf();
                     Swap(_firstSelected, element);
                     _firstSelected = null;
                     CheckBoard();
+                    _signalBus.Fire<OnDoStep>();
                 }
                 else
                 {
@@ -196,7 +260,8 @@ namespace Game
             List<Element> elementsInLine = new List<Element>();
             var element = _elements[x, y];
 
-            while (_elements[nextColumn, nextRow].IsActive && element.ConfigItem.Key == _elements[nextColumn, nextRow].ConfigItem.Key)
+            while (_elements[nextColumn, nextRow].IsActive &&
+                   element.ConfigItem.Key == _elements[nextColumn, nextRow].ConfigItem.Key)
             {
                 elementsInLine.Add(_elements[nextColumn, nextRow]);
                 if (nextColumn + 1 < column)
@@ -226,7 +291,8 @@ namespace Game
             List<Element> elementsInLine = new List<Element>();
             var element = _elements[x, y];
 
-            while (_elements[nextColumn, nextRow].IsActive && element.ConfigItem.Key == _elements[nextColumn, nextRow].ConfigItem.Key)
+            while (_elements[nextColumn, nextRow].IsActive &&
+                   element.ConfigItem.Key == _elements[nextColumn, nextRow].ConfigItem.Key)
             {
                 elementsInLine.Add(_elements[nextColumn, nextRow]);
                 if (nextRow + 1 < row)
@@ -296,7 +362,7 @@ namespace Game
         private void GenerateRandomElement(Element element, int column, int row)
         {
             Vector2 gridPosition = element.GridPosition;
-            var elements = GetPossibleElement((int) gridPosition.x, (int) gridPosition.y, column, row);
+            var elements = GetPossibleElement((int)gridPosition.x, (int)gridPosition.y, column, row);
             element.SetConfig(elements);
         }
 
@@ -338,8 +404,9 @@ namespace Game
 
         private void Swap(Element first, Element second)
         {
-            _elements[(int) first.GridPosition.x, (int) first.GridPosition.y] = second;
-            _elements[(int) second.GridPosition.x, (int) second.GridPosition.y] = first;
+            
+            _elements[(int)first.GridPosition.x, (int)first.GridPosition.y] = second;
+            _elements[(int)second.GridPosition.x, (int)second.GridPosition.y] = first;
 
             Vector2 position = second.transform.localPosition;
             Vector2 gridPosition = second.GridPosition;
@@ -355,7 +422,8 @@ namespace Game
             var elementsOffset = _boardConfig.ElementOffset;
             _elements = new Element[column, row];
 
-            var startPosition = new Vector2(-elementsOffset * column * 0.5f + elementsOffset * 0.5f, elementsOffset * row * 0.5f - elementsOffset * 0.5f);
+            var startPosition = new Vector2(-elementsOffset * column * 0.5f + elementsOffset * 0.5f,
+                elementsOffset * row * 0.5f - elementsOffset * 0.5f);
 
             for (int y = 0; y < row; y++)
             {
@@ -366,6 +434,31 @@ namespace Game
                         new ElementPosition(position, new Vector2(x, y)));
                     element.Initialize();
                     _elements[x, y] = element;
+                }
+            }
+        }
+
+        private void GenerateElements(string[] elementKeys)
+        {
+            var column = _boardConfig.SizeX;
+            var row = _boardConfig.SizeY;
+            var elementsOffset = _boardConfig.ElementOffset;
+            _elements = new Element[column, row];
+            int arrayIndex = 0;
+
+            var startPosition = new Vector2(-elementsOffset * column * 0.5f + elementsOffset * 0.5f,
+                elementsOffset * row * 0.5f - elementsOffset * 0.5f);
+
+            for (int y = 0; y < row; y++)
+            {
+                for (int x = 0; x < column; x++)
+                {
+                    var position = startPosition + new Vector2(elementsOffset * x, -elementsOffset * y);
+                    var element = _factory.Create(_elementsConfig.GetByKey(elementKeys[arrayIndex]),
+                        new ElementPosition(position, new Vector2(x, y)));
+                    element.Initialize();
+                    _elements[x, y] = element;
+                    arrayIndex++;
                 }
             }
         }
@@ -397,6 +490,105 @@ namespace Game
             }
 
             return tempList[Random.Range(0, tempList.Count)];
+        }
+
+        private Element SearchElementForMatch()
+        {
+            var column = _boardConfig.SizeX;
+            var row = _boardConfig.SizeY;
+            Element elementForShow;
+
+            for (int y = 0; y < row; y++)
+            {
+                for (int x = 0; x < column; x++)
+                {
+                    if (x + 1<column && _elements[x + 1, y].Key == _elements[x, y].Key)
+                    {
+                        if ((x + 2<column && y + 1<row) && _elements[x + 2, y + 1].Key == _elements[x, y].Key)
+                        {
+                            elementForShow = _elements[x + 2, y + 1];
+                            return elementForShow;
+                            break;
+                        }
+                        else if (y-1 >= 0 && x+2<column && _elements[x + 2, y - 1].Key == _elements[x, y].Key)
+                        {
+                            elementForShow = _elements[x + 2, y - 1];
+                            return elementForShow;
+                            break;
+                        }
+                        else if (x + 3<column && _elements[x + 3, y].Key == _elements[x, y].Key)
+                        {
+                            elementForShow = _elements[x+3, y];
+                            return elementForShow;
+                            break;
+                        }
+                    }
+                    else if (y + 1<row && _elements[x, y + 1].Key == _elements[x, y].Key)
+                    {
+                        if (x + 1<column && y + 2<row && _elements[x + 1, y + 2].Key == _elements[x, y].Key)
+                        {
+                            elementForShow = _elements[x + 1, y + 2];
+                            return elementForShow;
+                            break;
+                        }
+                        else if (x - 1>=0 && y + 2<row && _elements[x - 1, y + 2].Key == _elements[x, y].Key)
+                        {
+                            elementForShow = _elements[x - 1, y + 2];
+                            return elementForShow;
+                            break;
+                        }
+                        else if (y + 3<row && _elements[x, y + 3].Key == _elements[x, y].Key)
+                        {
+                            elementForShow = _elements[x, y+3];
+                            return elementForShow;
+                            break;
+                        }
+                    }
+                    else if (x + 2<column && _elements[x + 2, y].Key == _elements[x, y].Key)
+                    {
+                        if (x + 1<column && y + 1<row && _elements[x + 1, y + 1].Key == _elements[x, y].Key)
+                        {
+                            elementForShow = _elements[x + 1, y + 1];
+                            return elementForShow;
+                            break;
+                        }
+                        else if (x + 1<column && y - 1>=0 && _elements[x + 1, y - 1].Key == _elements[x, y].Key)
+                        {
+                            elementForShow = _elements[x + 1, y - 1];
+                            return elementForShow;
+                            break;
+                        }
+                        else if (x + 3<column && _elements[x + 3, y].Key == _elements[x, y].Key)
+                        {
+                            elementForShow = _elements[x, y];
+                            return elementForShow;
+                            break;
+                        }
+                    }
+                    else if (y + 2<row && _elements[x, y + 2].Key == _elements[x, y].Key)
+                    {
+                        if (x + 1<column && y + 1<row && _elements[x + 1, y + 1].Key == _elements[x, y].Key)
+                        {
+                            elementForShow = _elements[x + 1, y + 1];
+                            return elementForShow;
+                            break;
+                        }
+                        else if (x + 1<column && y - 1>=0 && _elements[x + 1, y - 1].Key == _elements[x, y].Key)
+                        {
+                            elementForShow = _elements[x + 1, y - 1];
+                            return elementForShow;
+                            break;
+                        }
+                        else if (y + 3<row && _elements[x, y + 3].Key == _elements[x, y].Key)
+                        {
+                            elementForShow = _elements[x, y];
+                            return elementForShow;
+                            break;
+                        }
+                    }
+                }
+            }
+            return null;
         }
     }
 }

@@ -95,6 +95,7 @@ GameObject:
   - component: {fileID: 2521983840497304797}
   - component: {fileID: 4492868364675763160}
   - component: {fileID: 7936265208705945309}
+  - component: {fileID: 5510679352395330774}
   m_Layer: 0
   m_Name: Element
   m_TagString: Untagged
@@ -159,6 +160,21 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   bgSpriteRender: {fileID: 4250450517286711239}
   iconSpriteRender: {fileID: 332163511836938047}
+--- !u!111 &5510679352395330774
+Animation:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2242765130147010859}
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Animation: {fileID: 7400000, guid: 2c52c878450395a4eb291b03f2e38713, type: 2}
+  m_Animations: []
+  m_WrapMode: 0
+  m_PlayAutomatically: 0
+  m_AnimatePhysics: 0
+  m_CullingType: 0
 --- !u!1 &3522702443012846330
 GameObject:
   m_ObjectHideFlags: 0
